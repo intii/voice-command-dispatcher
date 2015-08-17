@@ -1,9 +1,30 @@
-var voiceCommandDispatcher = function() {
+var VoiceCommandDispatcher = function() {
+
+  /**
+   * The AudioContext to be used in every step of the voice command dispatcher flow
+   */
   var audioContext;
+  /**
+   * A constant representing the sample rate
+   * @type {Number}
+   */
   var BUFF_SIZE_RENDERER = 512;
+
+  /**
+   * A constant representing the minimum sound amplitud that could be considered as audible
+   * @type {Number}
+   */
   var SILENCE_THRESHOLD = 0.015;
+
+  /**
+   * An array containing the recorded input until a phrase is recognised and properly handled
+   * @type {Array}
+   */
   var cachedBuffer = [];
 
+  /**
+   * Initializes the AudioContext if supported
+   */
   function createAudioContext() {
     audioCtx = window.AudioContext || window.webkitAudioContext;
     if (audioCtx) {
@@ -13,6 +34,10 @@ var voiceCommandDispatcher = function() {
     }
   }
 
+  /**
+   * Trims silence subarrays from the begin and the end of the buffer
+   * @param  {Array} audioBuffer The audio buffer
+   */
   function trimSilences(audioBuffer) {
     while (audioBuffer.length > 0 && audioBuffer[0] <= SILENCE_THRESHOLD) {
       audioBuffer.splice(0, 1);
@@ -22,6 +47,11 @@ var voiceCommandDispatcher = function() {
     }
   }
 
+  /**
+   * Identifies if the audio buffer contains a possible command by trimming silences, analysing
+   * the buffer, and checking duration. If so, it send's the buffer to the sevice layer
+   * @param  {Array} commandBuffer The audio buffer
+   */
   function captureVoiceCommand(commandBuffer) {
     var audioBuffer;
     trimSilences(commandBuffer);
@@ -30,6 +60,8 @@ var voiceCommandDispatcher = function() {
       audioBuffer.copyToChannel(new Float32Array(commandBuffer), 0);
 
       if(audioBuffer.duration > 0.5 && !detectSilence(audioBuffer)) {
+        //This whole code block is just for testing purposes. Here we should send the buffer
+        //to the service layer.
         var source = audioContext.createBufferSource();
         source.buffer = audioBuffer;
         source.connect(audioContext.destination);
@@ -39,6 +71,14 @@ var voiceCommandDispatcher = function() {
     }
   }
 
+  /**
+   * Analyses the audio buffer comparing each value to a defined threshold, looking for periods of
+   * silence.
+   * @param  {Array} audioBuffer The audio buffer
+   * @param  {Number} [limit]    An index until, starting from the end, the algorithm should search for
+   *                             silences
+   * @return {Boolean}           True if the analysed buffer is considered silence
+   */
   function detectSilence(audioBuffer, limit) {
     var sum = 0;
     var index = audioBuffer.length -1;
@@ -51,6 +91,12 @@ var voiceCommandDispatcher = function() {
     return avg <= SILENCE_THRESHOLD;
   }
 
+  /**
+   * Takes the input directly from the microphone stream, caching(recording) until a silence,
+   * considered as a phrase separation, is found. Delegates the phrase handling, and continues
+   * recording a possible new phrase.
+   * @param  {AudioProcessingEvent} event The event fired by AudioScriptProcessor
+   */
   function processInput(event) {
     var inputBuffer = event.inputBuffer.getChannelData(0);
     var audioBuffer;
@@ -66,6 +112,11 @@ var voiceCommandDispatcher = function() {
     }
   }
 
+  /**
+   * Based on HTML5 Audio API, creates the necessary graph to listen to the microphone input,
+   * and handling the received stream
+   * @param  {MediaStream} audioStream The audio stream coming from the microphone
+   */
   function createSoundGraph(audioStream) {
     var micStream = audioContext.createMediaStreamSource(audioStream);
     var inputAnalyzer = audioContext.createScriptProcessor(BUFF_SIZE_RENDERER, 1, 1);
@@ -75,6 +126,9 @@ var voiceCommandDispatcher = function() {
     inputAnalyzer.connect(audioContext.destination);
   }
 
+  /**
+   * Initializes the capture of sound provenient from the microphone, if supported.
+   */
   function initialize() {
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia ||
                     navigator.mozGetUserMedia || navigator.msGetUserMedia;
@@ -83,10 +137,10 @@ var voiceCommandDispatcher = function() {
 
     if (navigator.getUserMedia) {
       navigator.getUserMedia({audio:true}, createSoundGraph, function(e) {
-        console.alert('Error capturing audio.');
+        console.warn('Error capturing audio.');
       });
     } else {
-      console.alert('getUserMedia not supported in this browser.');
+      console.warn('getUserMedia not supported in this browser.');
     }
   }
 
@@ -98,7 +152,7 @@ var voiceCommandDispatcher = function() {
 }
 
 
-var voiceChannel = new voiceCommandDispatcher();
+var voiceChannel = new VoiceCommandDispatcher();
 
 window.document.querySelector('.js-trigger-mic').addEventListener('click', function() {
     voiceChannel.start();
