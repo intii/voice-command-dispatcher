@@ -1,0 +1,24 @@
+{
+  "name": "voice-command-dispatcher",
+  "version": "0.0.1",
+  "description": "An intermediary channel in charge of listening to voice commands and delivering answers",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/intii/voice-command-dispatcher.git"
+  },
+  "keywords": [
+    "wit",
+    "voice",
+    "dispatcher",
+    "accessibility"
+  ],
+  "author": "Inti Piolanti",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/intii/voice-command-dispatcher/issues"
+  },
+  "homepage": "https://github.com/intii/voice-command-dispatcher",
+  "devDependencies": {
+    "browserify": "^11.0.1"
+  }
+}

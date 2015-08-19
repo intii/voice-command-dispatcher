@@ -1,3 +1,66 @@
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+var VoiceCommandDispatcher = require('../src/voice-command-dispatcher');
+var voiceChannel = new VoiceCommandDispatcher();
+
+window.document.querySelector('.js-trigger-mic').addEventListener('click', function() {
+    voiceChannel.start();
+});
+},{"../src/voice-command-dispatcher":3}],2:[function(require,module,exports){
+var MessageRegistry = function() {
+
+  /**
+   * A pairing 'message' : [component1, ..., componentN], matching a message to an
+   * array of listening components
+   * @type {Object}
+   */
+  var register = {};
+
+  /**
+   * Adds a component to the registry, so it can be notified when the given message is received
+   * @param  {Object} component The web component
+   * @param  {String} message   A message that will be associated with an action
+   */
+  function subscribe(component, message) {
+    if (register[message]) {
+      register[message].push(component);
+    } else {
+      register[message] = [];
+      register[message].push(component);
+    }
+  }
+
+  /**
+   * Removes a component from a given message queue
+   * @param  {Object} component The web component
+   * @param  {String} message   The message to stop listening to
+   */
+  function unsubscribe(component, message) {
+    var index;
+    if (register[message]) {
+      index = register[message].indexOf(component);
+      if (index !== -1) {
+        register[message].splice(index, 1);
+      }
+    }
+  }
+
+  /**
+   * Notifies all componentes waiting for the received message
+   * @param  {String} message The received message
+   */
+  function notify(message) {
+    var index, length;
+    if (register[message]) {
+      length = register[message].length;
+      for(index = 0; index <= length; index ++) {
+        register[message][index].notify(message);
+      }
+    }
+  }
+}
+
+module.exports = MessageRegistry;
+},{}],3:[function(require,module,exports){
 var MessageRegistry = require('./modules/register');
 var VoiceCommandDispatcher = function() {
 
@@ -167,3 +230,5 @@ var VoiceCommandDispatcher = function() {
 }
 
 module.exports = VoiceCommandDispatcher;
+
+},{"./modules/register":2}]},{},[1]);
