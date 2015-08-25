@@ -1,6 +1,12 @@
 var MessageRegistry = require('./modules/register');
 var VoiceReader = require('./modules/voice-reader');
-var VoiceCommandDispatcher = function() {
+var VoiceCommandDispatcher = function(serviceLayer) {
+
+  /**
+   * The speech recognition service interface
+   * @type {Object}
+   */
+  var speechRecService = new serviceLayer();
 
   /**
    * The registry containing all the dispatch information
@@ -17,7 +23,7 @@ var VoiceCommandDispatcher = function() {
   return {
     start: function() {
       createRegistry();
-      new VoiceReader().initializeAudioCapture();
+      new VoiceReader().initializeAudioCapture(speechRecService);
     }
   }
 }

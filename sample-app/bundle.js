@@ -1,11 +1,12 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var VoiceCommandDispatcher = require('../src/voice-command-dispatcher');
-var voiceChannel = new VoiceCommandDispatcher();
+var witService = require('../src/modules/service-layer/wit-xhr-service-layer');
+var voiceChannel = new VoiceCommandDispatcher(witService);
 
 window.document.querySelector('.js-trigger-mic').addEventListener('click', function() {
     voiceChannel.start();
 });
-},{"../src/voice-command-dispatcher":4}],2:[function(require,module,exports){
+},{"../src/modules/service-layer/wit-xhr-service-layer":3,"../src/voice-command-dispatcher":5}],2:[function(require,module,exports){
 var MessageRegistry = function() {
 
   /**
@@ -61,6 +62,24 @@ var MessageRegistry = function() {
 
 module.exports = MessageRegistry;
 },{}],3:[function(require,module,exports){
+var WitServiceLayer = function() {
+  var url = 'https://api.wit.ai/message';
+  var token = 'I2VWI6GAJ4T52J5KBZ6LGOTJAWNBNV3F';
+
+  function postMesssage(audioBuffer, callback) {
+    var request = new XXMLHttpRequest();
+    request.open("POST", url, true);
+    request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    request.setRequestHeader('Authorization', 'Bearer' + token);
+    request.send();
+
+    request.addEventListener('load', callback, false);
+    request.addEventListener('error', errorCallback, false);
+  }
+}
+
+module.exports = WitServiceLayer;
+},{}],4:[function(require,module,exports){
 var VoiceReader = function() {
 
   /**
@@ -85,6 +104,11 @@ var VoiceReader = function() {
    * @type {Array}
    */
   var cachedBuffer = [];
+
+  /**
+   * The speech recognition service interface
+   */
+  var serviceLayer;
 
   /**
    * Initializes the AudioContext if supported
@@ -130,6 +154,11 @@ var VoiceReader = function() {
         source.buffer = audioBuffer;
         source.connect(audioContext.destination);
         // source.start();
+        if (serviceLayer) {
+          serviceLayer.postMessage(commandBuffer);
+        } else {
+          throw new Error('No service layer provided');
+        }
         console.log('pause');
       }
     }
@@ -192,11 +221,13 @@ var VoiceReader = function() {
 
   /**
    * Initializes the capture of sound provenient from the microphone, if supported.
+   * @param  {Object} serviceLayer The speech recognition service interface
    */
-  function initializeAudioCapture() {
+  function initializeAudioCapture(service) {
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia ||
                     navigator.mozGetUserMedia || navigator.msGetUserMedia;
 
+    serviceLayer = service;
     createAudioContext();
 
     if (navigator.getUserMedia) {
@@ -209,17 +240,21 @@ var VoiceReader = function() {
   }
 
   return {
-    initializeAudioCapture: function() {
-      initializeAudioCapture();
-    }
+    initializeAudioCapture: initializeAudioCapture
   }
 }
 
 module.exports = VoiceReader;
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 var MessageRegistry = require('./modules/register');
 var VoiceReader = require('./modules/voice-reader');
-var VoiceCommandDispatcher = function() {
+var VoiceCommandDispatcher = function(serviceLayer) {
+
+  /**
+   * The speech recognition service interface
+   * @type {Object}
+   */
+  var speechRecService = new serviceLayer();
 
   /**
    * The registry containing all the dispatch information
@@ -236,11 +271,11 @@ var VoiceCommandDispatcher = function() {
   return {
     start: function() {
       createRegistry();
-      new VoiceReader().initializeAudioCapture();
+      new VoiceReader().initializeAudioCapture(speechRecService);
     }
   }
 }
 
 module.exports = VoiceCommandDispatcher;
 
-},{"./modules/register":2,"./modules/voice-reader":3}]},{},[1]);
+},{"./modules/register":2,"./modules/voice-reader":4}]},{},[1]);

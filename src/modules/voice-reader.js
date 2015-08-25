@@ -24,6 +24,11 @@ var VoiceReader = function() {
   var cachedBuffer = [];
 
   /**
+   * The speech recognition service interface
+   */
+  var serviceLayer;
+
+  /**
    * Initializes the AudioContext if supported
    */
   function createAudioContext() {
@@ -67,6 +72,11 @@ var VoiceReader = function() {
         source.buffer = audioBuffer;
         source.connect(audioContext.destination);
         // source.start();
+        if (serviceLayer) {
+          serviceLayer.postMessage(commandBuffer);
+        } else {
+          throw new Error('No service layer provided');
+        }
         console.log('pause');
       }
     }
@@ -129,11 +139,13 @@ var VoiceReader = function() {
 
   /**
    * Initializes the capture of sound provenient from the microphone, if supported.
+   * @param  {Object} serviceLayer The speech recognition service interface
    */
-  function initializeAudioCapture() {
+  function initializeAudioCapture(service) {
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia ||
                     navigator.mozGetUserMedia || navigator.msGetUserMedia;
 
+    serviceLayer = service;
     createAudioContext();
 
     if (navigator.getUserMedia) {
@@ -146,9 +158,7 @@ var VoiceReader = function() {
   }
 
   return {
-    initializeAudioCapture: function() {
-      initializeAudioCapture();
-    }
+    initializeAudioCapture: initializeAudioCapture
   }
 }
 
