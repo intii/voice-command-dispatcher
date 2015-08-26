@@ -1,16 +1,29 @@
 var WitServiceLayer = function() {
-  var url = 'https://api.wit.ai/message';
+  var url = 'https://api.wit.ai/speech';
   var token = 'I2VWI6GAJ4T52J5KBZ6LGOTJAWNBNV3F';
+  var encoding = 'audio/raw;encoding=unsigned-integer;bits=16;rate=16000;endian=little';
 
-  function postMesssage(audioBuffer, callback) {
-    var request = new XXMLHttpRequest();
+  function postMessage(audioBuffer, callback) {
+    var request = new XMLHttpRequest();
     request.open("POST", url, true);
-    request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    request.setRequestHeader('Content-type', encoding);
     request.setRequestHeader('Authorization', 'Bearer' + token);
-    request.send();
+    request.addEventListener('load', handleResponse, false);
+    request.addEventListener('error', handleError, false);
 
-    request.addEventListener('load', callback, false);
-    request.addEventListener('error', errorCallback, false);
+    request.send(audioBuffer);
+  }
+
+  function handleResponse(response) {
+    console.log(response);
+  }
+
+  function handleError(error) {
+    console.log(error);
+  }
+
+  return {
+    postMessage: postMessage
   }
 }
 

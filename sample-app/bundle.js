@@ -63,18 +63,31 @@ var MessageRegistry = function() {
 module.exports = MessageRegistry;
 },{}],3:[function(require,module,exports){
 var WitServiceLayer = function() {
-  var url = 'https://api.wit.ai/message';
+  var url = 'https://api.wit.ai/speech';
   var token = 'I2VWI6GAJ4T52J5KBZ6LGOTJAWNBNV3F';
+  var encoding = 'audio/raw;encoding=unsigned-integer;bits=16;rate=16000;endian=little';
 
-  function postMesssage(audioBuffer, callback) {
-    var request = new XXMLHttpRequest();
+  function postMessage(audioBuffer, callback) {
+    var request = new XMLHttpRequest();
     request.open("POST", url, true);
-    request.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+    request.setRequestHeader('Content-type', encoding);
     request.setRequestHeader('Authorization', 'Bearer' + token);
-    request.send();
+    request.addEventListener('load', handleResponse, false);
+    request.addEventListener('error', handleError, false);
 
-    request.addEventListener('load', callback, false);
-    request.addEventListener('error', errorCallback, false);
+    request.send(audioBuffer);
+  }
+
+  function handleResponse(response) {
+    console.log(response);
+  }
+
+  function handleError(error) {
+    console.log(error);
+  }
+
+  return {
+    postMessage: postMessage
   }
 }
 
@@ -135,13 +148,30 @@ var VoiceReader = function() {
     }
   }
 
+  function encodeBuffer(audioBuffer) {
+    var bufferLength = audioBuffer.length,
+        transferBuffer = new Int16Array(bufferLength),
+        i, x, y;
+
+    /**
+     * Extracted from the implementation of Microphone
+     * https://github.com/wit-ai/microphone/blob/master/app/coffee/microphone.coffee
+     */
+    for (i = 0; i < bufferLength; i++) {
+      x = audioBuffer[i];
+      y = x < 0 ? x * 0x8000 : x * 0x7fff;
+      transferBuffer[i] = y;
+    }
+    return transferBuffer;
+  }
+
   /**
    * Identifies if the audio buffer contains a possible command by trimming silences, analysing
    * the buffer, and checking duration. If so, it send's the buffer to the sevice layer
    * @param  {Array} commandBuffer The audio buffer
    */
   function captureVoiceCommand(commandBuffer) {
-    var audioBuffer;
+    var audioBuffer, transferBuffer;
     trimSilences(commandBuffer);
     if (commandBuffer.length >= BUFF_SIZE_RENDERER) {
       audioBuffer = audioContext.createBuffer(1, commandBuffer.length, audioContext.sampleRate);
@@ -150,16 +180,16 @@ var VoiceReader = function() {
       if(audioBuffer.duration > 0.5 && !detectSilence(audioBuffer)) {
         //This whole code block is just for testing purposes. Here we should send the buffer
         //to the service layer.
-        var source = audioContext.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(audioContext.destination);
+        // var source = audioContext.createBufferSource();
+        // source.buffer = audioBuffer;
+        // source.connect(audioContext.destination);
         // source.start();
         if (serviceLayer) {
+          transferBuffer = encodeBuffer(commandBuffer);
           serviceLayer.postMessage(commandBuffer);
         } else {
           throw new Error('No service layer provided');
         }
-        console.log('pause');
       }
     }
   }
