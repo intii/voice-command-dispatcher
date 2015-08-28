@@ -91,7 +91,7 @@ var VoiceReader = function() {
         // source.start();
         if (serviceLayer) {
           transferBuffer = encodeBuffer(commandBuffer);
-          serviceLayer.postMessage(commandBuffer);
+          serviceLayer.postMessage(transferBuffer);
         } else {
           throw new Error('No service layer provided');
         }

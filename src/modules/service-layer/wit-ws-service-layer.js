@@ -4,6 +4,7 @@ var WitServiceLayer = function() {
   var socket = new WebSocket(WEBSOCKET_HOST);
 
   socket.onopen = authenticate;
+  socket.onerror = processError;
   socket.onmessage = processResponse;
 
   function authenticate(event) {
@@ -16,18 +17,20 @@ var WitServiceLayer = function() {
     socket.send(JSON.stringify(["auth", auth]));
   }
 
-  function postMesssage(audioBuffer, callback) {
-    socket.send('45');
-    // request.addEventListener('load', callback, false);
-    // request.addEventListener('error', errorCallback, false);
+  function postMessage(audioBuffer, callback) {
+    socket.send(audioBuffer);
   }
 
   function processResponse(response) {
     console.log('response --> ' + response);
   }
 
+  function processError(response) {
+    console.log('response --> ' + response);
+  }
+
   return {
-    postMessage: postMesssage
+    postMessage: postMessage
   }
 }
 

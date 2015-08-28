@@ -71,7 +71,7 @@ var WitServiceLayer = function() {
     var request = new XMLHttpRequest();
     request.open("POST", url, true);
     request.setRequestHeader('Content-type', encoding);
-    request.setRequestHeader('Authorization', 'Bearer' + token);
+    request.setRequestHeader('Authorization', 'Bearer ' + token);
     request.addEventListener('load', handleResponse, false);
     request.addEventListener('error', handleError, false);
 
@@ -186,7 +186,7 @@ var VoiceReader = function() {
         // source.start();
         if (serviceLayer) {
           transferBuffer = encodeBuffer(commandBuffer);
-          serviceLayer.postMessage(commandBuffer);
+          serviceLayer.postMessage(transferBuffer);
         } else {
           throw new Error('No service layer provided');
         }

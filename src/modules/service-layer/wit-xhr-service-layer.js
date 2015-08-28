@@ -7,7 +7,7 @@ var WitServiceLayer = function() {
     var request = new XMLHttpRequest();
     request.open("POST", url, true);
     request.setRequestHeader('Content-type', encoding);
-    request.setRequestHeader('Authorization', 'Bearer' + token);
+    request.setRequestHeader('Authorization', 'Bearer ' + token);
     request.addEventListener('load', handleResponse, false);
     request.addEventListener('error', handleError, false);
 
