@@ -65,7 +65,7 @@ module.exports = MessageRegistry;
 var WitServiceLayer = function() {
   var url = 'https://api.wit.ai/speech';
   var token = 'I2VWI6GAJ4T52J5KBZ6LGOTJAWNBNV3F';
-  var encoding = 'audio/raw;encoding=unsigned-integer;bits=16;rate=16000;endian=little';
+  var encoding = 'audio/raw;encoding=floating-point;bits=32;rate=44100;endian=little';
 
   function postMessage(audioBuffer, callback) {
     var request = new XMLHttpRequest();
@@ -185,8 +185,8 @@ var VoiceReader = function() {
         // source.connect(audioContext.destination);
         // source.start();
         if (serviceLayer) {
-          transferBuffer = encodeBuffer(commandBuffer);
-          serviceLayer.postMessage(transferBuffer);
+          // transferBuffer = encodeBuffer(commandBuffer);
+          serviceLayer.postMessage(new Float32Array(commandBuffer));
         } else {
           throw new Error('No service layer provided');
         }

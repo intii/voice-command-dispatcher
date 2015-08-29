@@ -10,8 +10,8 @@ var WitServiceLayer = function() {
   function authenticate(event) {
     var auth = {
       token: token,
-      bps: 16,
-      encoding: 'signed-integer'
+      bps: 32,
+      encoding: 'floating-point'
     };
 
     socket.send(JSON.stringify(["auth", auth]));

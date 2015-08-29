@@ -90,8 +90,8 @@ var VoiceReader = function() {
         // source.connect(audioContext.destination);
         // source.start();
         if (serviceLayer) {
-          transferBuffer = encodeBuffer(commandBuffer);
-          serviceLayer.postMessage(transferBuffer);
+          // transferBuffer = encodeBuffer(commandBuffer);
+          serviceLayer.postMessage(new Float32Array(commandBuffer));
         } else {
           throw new Error('No service layer provided');
         }
