@@ -148,7 +148,7 @@ var VoiceReader = function() {
   function createSoundGraph(audioStream) {
     var micStream = audioContext.createMediaStreamSource(audioStream);
     var inputAnalyzer = audioContext.createScriptProcessor(BUFF_SIZE_RENDERER, 1, 1);
-
+    window.globalInstance = inputAnalyzer;
     inputAnalyzer.onaudioprocess = processInput;
     micStream.connect(inputAnalyzer);
     inputAnalyzer.connect(audioContext.destination);

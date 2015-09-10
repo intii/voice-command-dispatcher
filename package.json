@@ -19,6 +19,7 @@
   },
   "homepage": "https://github.com/intii/voice-command-dispatcher",
   "devDependencies": {
-    "browserify": "^11.0.1"
+    "browserify": "^11.0.1",
+    "grunt-browserify": "^4.0.1"
   }
 }
