@@ -4,7 +4,14 @@ var witService = require('../src/modules/service-layer/wit-xhr-service-layer');
 var voiceChannel = new VoiceCommandDispatcher(witService);
 
 window.document.querySelector('.js-trigger-mic').addEventListener('click', function() {
+    function sampleCallback(message, data) {
+      console.log('The intent is: ' + message);
+      console.log('Data Received:');
+      console.log(data);
+    }
     voiceChannel.start();
+    voiceChannel.register('useless', sampleCallback);
+
 });
 },{"../src/modules/service-layer/wit-xhr-service-layer":3,"../src/voice-command-dispatcher":5}],2:[function(require,module,exports){
 var MessageRegistry = function() {
@@ -48,15 +55,22 @@ var MessageRegistry = function() {
   /**
    * Notifies all componentes waiting for the received message
    * @param  {String} message The received message
+   * @param  {Object} data additional returned data
    */
-  function notify(message) {
+  function notify(message, data) {
     var index, length;
     if (register[message]) {
       length = register[message].length;
-      for(index = 0; index <= length; index ++) {
-        register[message][index].notify(message);
+      for(index = 0; index < length; index ++) {
+        register[message][index].call(null, message, data);
       }
     }
+  }
+
+  return {
+    notify: notify,
+    subscribe: subscribe,
+    unsubscribe: unsubscribe
   }
 }
 
@@ -69,17 +83,19 @@ var WitServiceLayer = function() {
 
   function postMessage(audioBuffer, callback) {
     var request = new XMLHttpRequest();
+    function processResponse(xhr) {
+      var response = JSON.parse(xhr.target.response);
+      var outcome = response.outcomes;
+      var intent = outcome[0].intent;
+      callback(intent, outcome);
+    }
     request.open("POST", url, true);
     request.setRequestHeader('Content-type', encoding);
     request.setRequestHeader('Authorization', 'Bearer ' + token);
-    request.addEventListener('load', handleResponse, false);
+    request.addEventListener('load', processResponse, false);
     request.addEventListener('error', handleError, false);
 
     request.send(audioBuffer);
-  }
-
-  function handleResponse(response) {
-    console.log(response);
   }
 
   function handleError(error) {
@@ -122,6 +138,11 @@ var VoiceReader = function() {
    * The speech recognition service interface
    */
   var serviceLayer;
+
+  /**
+   * Cached callback to call each time the service returns a message
+   */
+  var responseHandler;
 
   /**
    * Initializes the AudioContext if supported
@@ -186,7 +207,7 @@ var VoiceReader = function() {
         // source.start();
         if (serviceLayer) {
           // transferBuffer = encodeBuffer(commandBuffer);
-          serviceLayer.postMessage(new Float32Array(commandBuffer));
+          serviceLayer.postMessage(new Float32Array(commandBuffer), responseHandler);
         } else {
           throw new Error('No service layer provided');
         }
@@ -252,12 +273,14 @@ var VoiceReader = function() {
   /**
    * Initializes the capture of sound provenient from the microphone, if supported.
    * @param  {Object} serviceLayer The speech recognition service interface
+   * @param  {Function} callback The handler to call each time the service sends a response
    */
-  function initializeAudioCapture(service) {
+  function initializeAudioCapture(service, callback) {
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia ||
                     navigator.mozGetUserMedia || navigator.msGetUserMedia;
 
     serviceLayer = service;
+    responseHandler = callback;
     createAudioContext();
 
     if (navigator.getUserMedia) {
@@ -301,7 +324,15 @@ var VoiceCommandDispatcher = function(serviceLayer) {
   return {
     start: function() {
       createRegistry();
-      new VoiceReader().initializeAudioCapture(speechRecService);
+      new VoiceReader().initializeAudioCapture(speechRecService, registry.notify);
+    },
+
+    register: function(message, callback) {
+      registry.subscribe(callback, message);
+    },
+
+    unregister: function(message, callback) {
+      registry.unsubscribe(callback, message);
     }
   }
 }

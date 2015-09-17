@@ -5,17 +5,19 @@ var WitServiceLayer = function() {
 
   function postMessage(audioBuffer, callback) {
     var request = new XMLHttpRequest();
+    function processResponse(xhr) {
+      var response = JSON.parse(xhr.target.response);
+      var outcome = response.outcomes;
+      var intent = outcome[0].intent;
+      callback(intent, outcome);
+    }
     request.open("POST", url, true);
     request.setRequestHeader('Content-type', encoding);
     request.setRequestHeader('Authorization', 'Bearer ' + token);
-    request.addEventListener('load', handleResponse, false);
+    request.addEventListener('load', processResponse, false);
     request.addEventListener('error', handleError, false);
 
     request.send(audioBuffer);
-  }
-
-  function handleResponse(response) {
-    console.log(response);
   }
 
   function handleError(error) {

@@ -39,15 +39,22 @@ var MessageRegistry = function() {
   /**
    * Notifies all componentes waiting for the received message
    * @param  {String} message The received message
+   * @param  {Object} data additional returned data
    */
-  function notify(message) {
+  function notify(message, data) {
     var index, length;
     if (register[message]) {
       length = register[message].length;
-      for(index = 0; index <= length; index ++) {
-        register[message][index].notify(message);
+      for(index = 0; index < length; index ++) {
+        register[message][index].call(null, message, data);
       }
     }
+  }
+
+  return {
+    notify: notify,
+    subscribe: subscribe,
+    unsubscribe: unsubscribe
   }
 }
 

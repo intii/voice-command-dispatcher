@@ -29,6 +29,11 @@ var VoiceReader = function() {
   var serviceLayer;
 
   /**
+   * Cached callback to call each time the service returns a message
+   */
+  var responseHandler;
+
+  /**
    * Initializes the AudioContext if supported
    */
   function createAudioContext() {
@@ -91,7 +96,7 @@ var VoiceReader = function() {
         // source.start();
         if (serviceLayer) {
           // transferBuffer = encodeBuffer(commandBuffer);
-          serviceLayer.postMessage(new Float32Array(commandBuffer));
+          serviceLayer.postMessage(new Float32Array(commandBuffer), responseHandler);
         } else {
           throw new Error('No service layer provided');
         }
@@ -157,12 +162,14 @@ var VoiceReader = function() {
   /**
    * Initializes the capture of sound provenient from the microphone, if supported.
    * @param  {Object} serviceLayer The speech recognition service interface
+   * @param  {Function} callback The handler to call each time the service sends a response
    */
-  function initializeAudioCapture(service) {
+  function initializeAudioCapture(service, callback) {
     navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia ||
                     navigator.mozGetUserMedia || navigator.msGetUserMedia;
 
     serviceLayer = service;
+    responseHandler = callback;
     createAudioContext();
 
     if (navigator.getUserMedia) {

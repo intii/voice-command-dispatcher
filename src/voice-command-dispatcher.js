@@ -23,7 +23,15 @@ var VoiceCommandDispatcher = function(serviceLayer) {
   return {
     start: function() {
       createRegistry();
-      new VoiceReader().initializeAudioCapture(speechRecService);
+      new VoiceReader().initializeAudioCapture(speechRecService, registry.notify);
+    },
+
+    register: function(message, callback) {
+      registry.subscribe(callback, message);
+    },
+
+    unregister: function(message, callback) {
+      registry.unsubscribe(callback, message);
     }
   }
 }
