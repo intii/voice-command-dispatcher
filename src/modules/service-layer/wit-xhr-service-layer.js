@@ -6,10 +6,12 @@ var WitServiceLayer = function() {
   function postMessage(audioBuffer, callback) {
     var request = new XMLHttpRequest();
     function processResponse(xhr) {
-      var response = JSON.parse(xhr.target.response);
-      var outcome = response.outcomes;
-      var intent = outcome[0].intent;
-      callback(intent, outcome);
+      var outcome = JSON.parse(xhr.target.response.outcomes);
+      var intent;
+      if (outcome.length > 0) {
+        intent = outcome[0].intent;
+        callback(intent, outcome);
+      }
     }
     request.open("POST", url, true);
     request.setRequestHeader('Content-type', encoding);
