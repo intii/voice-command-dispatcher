@@ -1,4 +1,4 @@
-var VoiceReader = function() {
+var VoiceReader = function(encoder) {
 
   /**
    * The AudioContext to be used in every step of the voice command dispatcher flow
@@ -81,13 +81,13 @@ var VoiceReader = function() {
    * @param  {Array} commandBuffer The audio buffer
    */
   function captureVoiceCommand(commandBuffer) {
-    // var audioBuffer;
+    var transferBuffer;
     trimSilences(commandBuffer);
     if (commandBuffer.length >= BUFF_SIZE_RENDERER) {
       // audioBuffer = audioContext.createBuffer(1, commandBuffer.length, audioContext.sampleRate);
       // audioBuffer.copyToChannel(new Float32Array(commandBuffer), 0);
 
-      if(commandBuffer.length >= 22050 && !detectSilence(commandBuffer)) {
+      if (commandBuffer.length >= 22050 && !detectSilence(commandBuffer)) {
         //This whole code block is just for testing purposes. Here we should send the buffer
         //to the service layer.
         // var source = audioContext.createBufferSource();
@@ -96,8 +96,14 @@ var VoiceReader = function() {
         // source.start();
 
         if (serviceLayer) {
+          if (encoder) {
+            transferBuffer = encoder.encode(commandBuffer);
+            serviceLayer.postMessage(transferBuffer, responseHandler);
+          } else {
+            serviceLayer.postMessage(new Float32Array(commandBuffer), responseHandler);
+          }
           // transferBuffer = encodeBuffer(commandBuffer);
-          serviceLayer.postMessage(new Float32Array(commandBuffer), responseHandler);
+
         } else {
           throw new Error('No service layer provided');
         }

@@ -1,5 +1,6 @@
 var MessageRegistry = require('./modules/register');
 var VoiceReader = require('./modules/voice-reader');
+var WAVEncoder = require('./modules/encoders/wav-encoder');
 var VoiceCommandDispatcher = function(serviceLayer) {
 
   /**
@@ -23,7 +24,7 @@ var VoiceCommandDispatcher = function(serviceLayer) {
   return {
     start: function() {
       createRegistry();
-      new VoiceReader().initializeAudioCapture(speechRecService, registry.notify);
+      new VoiceReader(new WAVEncoder()).initializeAudioCapture(speechRecService, registry.notify);
     },
 
     register: function(message, callback) {
