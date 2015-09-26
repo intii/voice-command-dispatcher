@@ -9,7 +9,7 @@ var VoiceReader = function() {
    * A constant representing the sample rate
    * @type {Number}
    */
-  var BUFF_SIZE_RENDERER = 512;
+  var BUFF_SIZE_RENDERER = 16384;
 
   /**
    * A constant representing the minimum sound amplitud that could be considered as audible
@@ -81,19 +81,20 @@ var VoiceReader = function() {
    * @param  {Array} commandBuffer The audio buffer
    */
   function captureVoiceCommand(commandBuffer) {
-    var audioBuffer, transferBuffer;
+    // var audioBuffer;
     trimSilences(commandBuffer);
     if (commandBuffer.length >= BUFF_SIZE_RENDERER) {
-      audioBuffer = audioContext.createBuffer(1, commandBuffer.length, audioContext.sampleRate);
-      audioBuffer.copyToChannel(new Float32Array(commandBuffer), 0);
+      // audioBuffer = audioContext.createBuffer(1, commandBuffer.length, audioContext.sampleRate);
+      // audioBuffer.copyToChannel(new Float32Array(commandBuffer), 0);
 
-      if(audioBuffer.duration > 0.5 && !detectSilence(audioBuffer)) {
+      if(commandBuffer.length >= 22050 && !detectSilence(commandBuffer)) {
         //This whole code block is just for testing purposes. Here we should send the buffer
         //to the service layer.
         // var source = audioContext.createBufferSource();
         // source.buffer = audioBuffer;
         // source.connect(audioContext.destination);
         // source.start();
+
         if (serviceLayer) {
           // transferBuffer = encodeBuffer(commandBuffer);
           serviceLayer.postMessage(new Float32Array(commandBuffer), responseHandler);
@@ -132,13 +133,13 @@ var VoiceReader = function() {
    */
   function processInput(event) {
     var inputBuffer = event.inputBuffer.getChannelData(0);
-    var audioBuffer;
 
     cachedBuffer = Array.prototype.concat(cachedBuffer, Array.prototype.slice.call(inputBuffer));
-    audioBuffer = audioContext.createBuffer(1, cachedBuffer.length, audioContext.sampleRate);
-    audioBuffer.copyToChannel(new Float32Array(cachedBuffer), 0);
 
-    if (audioBuffer.duration >= 0.5 && detectSilence(cachedBuffer, 20000)) {
+    //Since the sample rate is 44.1khz, that means 44100 samples are taken in 1 second
+    //So, 22050 samples are taken in half a second. We will only process a stream if it last
+    //at least half a second, an we will consider a silence, a half a second break in the audio
+    if (cachedBuffer.length >= 22050 && detectSilence(cachedBuffer, 22050)) {
       console.log('Silence ---> ');
       captureVoiceCommand(cachedBuffer);
       cachedBuffer = [];
