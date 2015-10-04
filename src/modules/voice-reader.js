@@ -58,23 +58,6 @@ var VoiceReader = function(encoder) {
     }
   }
 
-  function encodeBuffer(audioBuffer) {
-    var bufferLength = audioBuffer.length,
-        transferBuffer = new Int16Array(bufferLength),
-        i, x, y;
-
-    /**
-     * Extracted from the implementation of Microphone
-     * https://github.com/wit-ai/microphone/blob/master/app/coffee/microphone.coffee
-     */
-    for (i = 0; i < bufferLength; i++) {
-      x = audioBuffer[i];
-      y = x < 0 ? x * 0x8000 : x * 0x7fff;
-      transferBuffer[i] = y;
-    }
-    return transferBuffer;
-  }
-
   /**
    * Identifies if the audio buffer contains a possible command by trimming silences, analysing
    * the buffer, and checking duration. If so, it send's the buffer to the sevice layer
@@ -84,17 +67,7 @@ var VoiceReader = function(encoder) {
     var transferBuffer;
     trimSilences(commandBuffer);
     if (commandBuffer.length >= BUFF_SIZE_RENDERER) {
-      // audioBuffer = audioContext.createBuffer(1, commandBuffer.length, audioContext.sampleRate);
-      // audioBuffer.copyToChannel(new Float32Array(commandBuffer), 0);
-
       if (commandBuffer.length >= 22050 && !detectSilence(commandBuffer)) {
-        //This whole code block is just for testing purposes. Here we should send the buffer
-        //to the service layer.
-        // var source = audioContext.createBufferSource();
-        // source.buffer = audioBuffer;
-        // source.connect(audioContext.destination);
-        // source.start();
-
         if (serviceLayer) {
           if (encoder) {
             transferBuffer = encoder.encode(commandBuffer);
@@ -102,8 +75,6 @@ var VoiceReader = function(encoder) {
           } else {
             serviceLayer.postMessage(new Float32Array(commandBuffer), responseHandler);
           }
-          // transferBuffer = encodeBuffer(commandBuffer);
-
         } else {
           throw new Error('No service layer provided');
         }
