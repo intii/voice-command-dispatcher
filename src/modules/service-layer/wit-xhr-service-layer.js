@@ -21,6 +21,8 @@ var WitServiceLayer = function() {
     request.addEventListener('load', processResponse, false);
     request.addEventListener('error', handleError, false);
 
+    // request.send(audioBuffer.substring(22));
+    audioBuffer = new Blob([audioBuffer], {type: 'audio/wav'});
     request.send(audioBuffer);
   }
 
