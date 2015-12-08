@@ -1,6 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var VoiceCommandDispatcher = require('../src/voice-command-dispatcher');
-var witService = require('../src/modules/service-layer/wit-xhr-service-layer');
+var witService = require('../src/modules/service-layer/wit-ws-service-layer');
 var voiceChannel = new VoiceCommandDispatcher(witService);
 
 window.document.querySelector('.js-trigger-mic').addEventListener('click', function() {
@@ -13,7 +13,28 @@ window.document.querySelector('.js-trigger-mic').addEventListener('click', funct
     voiceChannel.register('useless', sampleCallback);
 
 });
-},{"../src/modules/service-layer/wit-xhr-service-layer":3,"../src/voice-command-dispatcher":5}],2:[function(require,module,exports){
+},{"../src/modules/service-layer/wit-ws-service-layer":4,"../src/voice-command-dispatcher":6}],2:[function(require,module,exports){
+var WAVEncoder = function() {
+
+  function encode(audioBuffer) {
+    var bufferLength = audioBuffer.length;
+    var intBuffer = new Int16Array(bufferLength);
+    var floatSignal, i = 0;
+    for (; i < bufferLength; i++) {
+      floatSignal = audioBuffer[i];
+      intBuffer[i] = floatSignal < 0 ? floatSignal * 0x8000 : floatSignal * 0x7FFF
+    }
+    return intBuffer;
+  }
+
+  return {
+    encode: encode
+  }
+}
+
+
+module.exports = WAVEncoder;
+},{}],3:[function(require,module,exports){
 var MessageRegistry = function() {
 
   /**
@@ -75,31 +96,45 @@ var MessageRegistry = function() {
 }
 
 module.exports = MessageRegistry;
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
+var IntEncoder = require('../encoders/integer-encoder');
 var WitServiceLayer = function() {
-  var url = 'https://api.wit.ai/speech';
+  var WEBSOCKET_HOST = 'wss://api.wit.ai/speech_ws';
   var token = 'I2VWI6GAJ4T52J5KBZ6LGOTJAWNBNV3F';
-  var encoding = 'audio/raw;encoding=floating-point;bits=32;rate=44100;endian=little';
+  var socket = new WebSocket(WEBSOCKET_HOST);
+  var encoder = new IntEncoder();
 
-  function postMessage(audioBuffer, callback) {
-    var request = new XMLHttpRequest();
-    function processResponse(xhr) {
-      var response = JSON.parse(xhr.target.response);
-      var outcome = response.outcomes;
-      var intent = outcome[0].intent;
-      callback(intent, outcome);
-    }
-    request.open("POST", url, true);
-    request.setRequestHeader('Content-type', encoding);
-    request.setRequestHeader('Authorization', 'Bearer ' + token);
-    request.addEventListener('load', processResponse, false);
-    request.addEventListener('error', handleError, false);
+  socket.onopen = authenticate;
+  socket.onclose = closing;
+  socket.onerror = processError;
+  socket.onmessage = processResponse;
 
-    request.send(audioBuffer);
+  function authenticate(event) {
+    var auth = {
+      token: token,
+      bps: 16,
+      encoding: 'signed-integer'
+    };
+    socket.send(JSON.stringify(["auth", auth]));
   }
 
-  function handleError(error) {
-    console.log(error);
+  function closing() {
+    console.log('closing');
+  }
+
+  function postMessage(audioBuffer, callback) {
+    audioBuffer = encoder.encode(audioBuffer);
+    socket.send(JSON.stringify(["start", {}]));
+    socket.send(audioBuffer);
+    socket.send(JSON.stringify(["stop", {}]));
+  }
+
+  function processResponse(response) {
+    console.log('response --> ' + response);
+  }
+
+  function processError(response) {
+    console.log('response --> ' + response);
   }
 
   return {
@@ -108,7 +143,7 @@ var WitServiceLayer = function() {
 }
 
 module.exports = WitServiceLayer;
-},{}],4:[function(require,module,exports){
+},{"../encoders/integer-encoder":2}],5:[function(require,module,exports){
 var VoiceReader = function() {
 
   /**
@@ -120,7 +155,7 @@ var VoiceReader = function() {
    * A constant representing the sample rate
    * @type {Number}
    */
-  var BUFF_SIZE_RENDERER = 512;
+  var BUFF_SIZE_RENDERER = 16384;
 
   /**
    * A constant representing the minimum sound amplitud that could be considered as audible
@@ -169,45 +204,17 @@ var VoiceReader = function() {
     }
   }
 
-  function encodeBuffer(audioBuffer) {
-    var bufferLength = audioBuffer.length,
-        transferBuffer = new Int16Array(bufferLength),
-        i, x, y;
-
-    /**
-     * Extracted from the implementation of Microphone
-     * https://github.com/wit-ai/microphone/blob/master/app/coffee/microphone.coffee
-     */
-    for (i = 0; i < bufferLength; i++) {
-      x = audioBuffer[i];
-      y = x < 0 ? x * 0x8000 : x * 0x7fff;
-      transferBuffer[i] = y;
-    }
-    return transferBuffer;
-  }
-
   /**
    * Identifies if the audio buffer contains a possible command by trimming silences, analysing
    * the buffer, and checking duration. If so, it send's the buffer to the sevice layer
    * @param  {Array} commandBuffer The audio buffer
    */
   function captureVoiceCommand(commandBuffer) {
-    var audioBuffer, transferBuffer;
     trimSilences(commandBuffer);
     if (commandBuffer.length >= BUFF_SIZE_RENDERER) {
-      audioBuffer = audioContext.createBuffer(1, commandBuffer.length, audioContext.sampleRate);
-      audioBuffer.copyToChannel(new Float32Array(commandBuffer), 0);
-
-      if(audioBuffer.duration > 0.5 && !detectSilence(audioBuffer)) {
-        //This whole code block is just for testing purposes. Here we should send the buffer
-        //to the service layer.
-        // var source = audioContext.createBufferSource();
-        // source.buffer = audioBuffer;
-        // source.connect(audioContext.destination);
-        // source.start();
+      if (commandBuffer.length >= 22050 && !detectSilence(commandBuffer)) {
         if (serviceLayer) {
-          // transferBuffer = encodeBuffer(commandBuffer);
-          serviceLayer.postMessage(new Float32Array(commandBuffer), responseHandler);
+          serviceLayer.postMessage(commandBuffer, responseHandler);
         } else {
           throw new Error('No service layer provided');
         }
@@ -243,13 +250,13 @@ var VoiceReader = function() {
    */
   function processInput(event) {
     var inputBuffer = event.inputBuffer.getChannelData(0);
-    var audioBuffer;
 
     cachedBuffer = Array.prototype.concat(cachedBuffer, Array.prototype.slice.call(inputBuffer));
-    audioBuffer = audioContext.createBuffer(1, cachedBuffer.length, audioContext.sampleRate);
-    audioBuffer.copyToChannel(new Float32Array(cachedBuffer), 0);
 
-    if (audioBuffer.duration >= 0.5 && detectSilence(cachedBuffer, 20000)) {
+    //Since the sample rate is 44.1khz, that means 44100 samples are taken in 1 second
+    //So, 22050 samples are taken in half a second. We will only process a stream if it last
+    //at least half a second, an we will consider a silence, a half a second break in the audio
+    if (cachedBuffer.length >= 22050 && detectSilence(cachedBuffer, 22050)) {
       console.log('Silence ---> ');
       captureVoiceCommand(cachedBuffer);
       cachedBuffer = [];
@@ -298,7 +305,7 @@ var VoiceReader = function() {
 }
 
 module.exports = VoiceReader;
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
 var MessageRegistry = require('./modules/register');
 var VoiceReader = require('./modules/voice-reader');
 var VoiceCommandDispatcher = function(serviceLayer) {
@@ -339,4 +346,4 @@ var VoiceCommandDispatcher = function(serviceLayer) {
 
 module.exports = VoiceCommandDispatcher;
 
-},{"./modules/register":2,"./modules/voice-reader":4}]},{},[1]);
+},{"./modules/register":3,"./modules/voice-reader":5}]},{},[1]);

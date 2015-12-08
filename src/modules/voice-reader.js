@@ -1,4 +1,4 @@
-var VoiceReader = function(encoder) {
+var VoiceReader = function() {
 
   /**
    * The AudioContext to be used in every step of the voice command dispatcher flow
@@ -64,17 +64,11 @@ var VoiceReader = function(encoder) {
    * @param  {Array} commandBuffer The audio buffer
    */
   function captureVoiceCommand(commandBuffer) {
-    var transferBuffer;
     trimSilences(commandBuffer);
     if (commandBuffer.length >= BUFF_SIZE_RENDERER) {
       if (commandBuffer.length >= 22050 && !detectSilence(commandBuffer)) {
         if (serviceLayer) {
-          if (encoder) {
-            transferBuffer = encoder.encode(commandBuffer);
-            serviceLayer.postMessage(transferBuffer, responseHandler);
-          } else {
-            serviceLayer.postMessage(new Float32Array(commandBuffer), responseHandler);
-          }
+          serviceLayer.postMessage(commandBuffer, responseHandler);
         } else {
           throw new Error('No service layer provided');
         }
