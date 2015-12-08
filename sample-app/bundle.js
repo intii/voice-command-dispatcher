@@ -1,6 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var VoiceCommandDispatcher = require('../src/voice-command-dispatcher');
-var witService = require('../src/modules/service-layer/wit-ws-service-layer');
+var witService = require('../src/modules/service-layer/wit-xhr-service-layer');
 var voiceChannel = new VoiceCommandDispatcher(witService);
 
 window.document.querySelector('.js-trigger-mic').addEventListener('click', function() {
@@ -13,18 +13,67 @@ window.document.querySelector('.js-trigger-mic').addEventListener('click', funct
     voiceChannel.register('useless', sampleCallback);
 
 });
-},{"../src/modules/service-layer/wit-ws-service-layer":4,"../src/voice-command-dispatcher":6}],2:[function(require,module,exports){
+},{"../src/modules/service-layer/wit-xhr-service-layer":4,"../src/voice-command-dispatcher":6}],2:[function(require,module,exports){
 var WAVEncoder = function() {
 
-  function encode(audioBuffer) {
-    var bufferLength = audioBuffer.length;
-    var intBuffer = new Int16Array(bufferLength);
-    var floatSignal, i = 0;
-    for (; i < bufferLength; i++) {
-      floatSignal = audioBuffer[i];
-      intBuffer[i] = floatSignal < 0 ? floatSignal * 0x8000 : floatSignal * 0x7FFF
+  /**
+   * Creates a DataView object with the encoded WAV
+   * @param  {AudioBuffer} buf The recorded audio
+   * @param  {Number} sr       The sample rate
+   * @return {DataView}        The encoded WAV
+   */
+  function encodeWAV(buf, sr) {
+    var buffer = new ArrayBuffer(44 + buf.length * 2);
+    var view = new DataView(buffer);
+
+    /* RIFF identifier */
+    writeString(view, 0, 'RIFF');
+    /* file length */
+    view.setUint32(4, 32 + buf.length * 2, true);
+    /* RIFF type */
+    writeString(view, 8, 'WAVE');
+    /* format chunk identifier */
+    writeString(view, 12, 'fmt ');
+    /* format chunk length */
+    view.setUint32(16, 16, true);
+    /* sample format (raw) */
+    view.setUint16(20, 1, true);
+    /* channel count */
+    view.setUint16(22, 1, true);
+    /* sample rate */
+    view.setUint32(24, sr, true);
+    /* byte rate (sample rate * block align) */
+    view.setUint32(28, sr *2 , true);
+    /* block align (channel count * bytes per sample) */
+    view.setUint16(32, 2, true);
+    /* bits per sample */
+    view.setUint16(34, 16, true);
+    /* data chunk identifier */
+    writeString(view, 36, 'data');
+    /* data chunk length */
+    view.setUint32(40, buf.length * 2, true);
+
+    floatTo16BitPCM(view, 44, buf);
+
+    return view;
+  }
+
+  function floatTo16BitPCM(output, offset, input){
+    for (var i = 0; i < input.length; i++, offset+=2){
+      var s = Math.max(-1, Math.min(1, input[i]));
+      output.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
     }
-    return intBuffer;
+  }
+
+  function writeString(view, offset, string){
+    for (var i = 0; i < string.length; i++){
+      view.setUint8(offset + i, string.charCodeAt(i));
+    }
+  }
+
+
+  function encode(audioBuffer) {
+    return encodeWAV(audioBuffer, 44100);
   }
 
   return {
@@ -97,44 +146,38 @@ var MessageRegistry = function() {
 
 module.exports = MessageRegistry;
 },{}],4:[function(require,module,exports){
-var IntEncoder = require('../encoders/integer-encoder');
+var WAVEncoder = require('../encoders/wav-encoder');
 var WitServiceLayer = function() {
-  var WEBSOCKET_HOST = 'wss://api.wit.ai/speech_ws';
+  var url = 'https://api.wit.ai/speech';
   var token = 'I2VWI6GAJ4T52J5KBZ6LGOTJAWNBNV3F';
-  var socket = new WebSocket(WEBSOCKET_HOST);
-  var encoder = new IntEncoder();
-
-  socket.onopen = authenticate;
-  socket.onclose = closing;
-  socket.onerror = processError;
-  socket.onmessage = processResponse;
-
-  function authenticate(event) {
-    var auth = {
-      token: token,
-      bps: 16,
-      encoding: 'signed-integer'
-    };
-    socket.send(JSON.stringify(["auth", auth]));
-  }
-
-  function closing() {
-    console.log('closing');
-  }
+  var encoding = 'audio/wav';
+  var encoder = new WAVEncoder();
 
   function postMessage(audioBuffer, callback) {
+    var request = new XMLHttpRequest();
+
     audioBuffer = encoder.encode(audioBuffer);
-    socket.send(JSON.stringify(["start", {}]));
-    socket.send(audioBuffer);
-    socket.send(JSON.stringify(["stop", {}]));
+    function processResponse(xhr) {
+      var outcome = JSON.parse(xhr.target.response).outcomes;
+      var intent;
+
+      if (outcome.length > 0) {
+        intent = outcome[0].intent;
+        callback(intent, outcome);
+      }
+    }
+    request.open("POST", url, true);
+    request.setRequestHeader('Content-type', encoding);
+    request.setRequestHeader('Authorization', 'Bearer ' + token);
+    request.addEventListener('load', processResponse, false);
+    request.addEventListener('error', handleError, false);
+
+    audioBuffer = new Blob([audioBuffer], {type: 'audio/wav'});
+    request.send(audioBuffer);
   }
 
-  function processResponse(response) {
-    console.log('response --> ' + response);
-  }
-
-  function processError(response) {
-    console.log('response --> ' + response);
+  function handleError(error) {
+    console.log(error);
   }
 
   return {
@@ -143,7 +186,7 @@ var WitServiceLayer = function() {
 }
 
 module.exports = WitServiceLayer;
-},{"../encoders/integer-encoder":2}],5:[function(require,module,exports){
+},{"../encoders/wav-encoder":2}],5:[function(require,module,exports){
 var VoiceReader = function() {
 
   /**
