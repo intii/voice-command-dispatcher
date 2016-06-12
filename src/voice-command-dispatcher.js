@@ -1,5 +1,5 @@
 var MessageRegistry = require('./modules/register');
-var VoiceReader = require('./modules/voice-reader');
+var VoiceReader = require('./modules/voice-reader-speech-api');
 var VoiceCommandDispatcher = function(serviceLayer) {
 
   /**
