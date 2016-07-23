@@ -1,7 +1,6 @@
 
 var WitServiceLayer = function() {
-  var url = 'https://api.wit.ai/message';
-  var token = 'I2VWI6GAJ4T52J5KBZ6LGOTJAWNBNV3F';
+  var url = 'https://7p6oly17u1.execute-api.us-east-1.amazonaws.com/devinti';
 
   function postMessage(message, callback) {
     var request = new XMLHttpRequest();
@@ -15,9 +14,9 @@ var WitServiceLayer = function() {
         callback(intent, outcome);
       }
     }
-    request.open("POST", url, true);
-    // request.setRequestHeader('Content-type', encoding);
-    request.setRequestHeader('Authorization', 'Bearer ' + token);
+    request.open("GET", url + '?query=' + message, true);
+    //setting a custom header to force the browser to send OPTIONS req
+    request.setRequestHeader('Content-Type', 'value ' + 123);
     request.addEventListener('load', processResponse, false);
     request.addEventListener('error', handleError, false);
 
