@@ -1,6 +1,6 @@
 
 var WitServiceLayer = function() {
-  var url = 'https://7p6oly17u1.execute-api.us-east-1.amazonaws.com/devinti';
+  var url = 'https://7p6oly17u1.execute-api.us-east-1.amazonaws.com/devinti/witGet';
 
   function postMessage(message, callback) {
     var request = new XMLHttpRequest();
@@ -15,8 +15,7 @@ var WitServiceLayer = function() {
       }
     }
     request.open("GET", url + '?query=' + message, true);
-    //setting a custom header to force the browser to send OPTIONS req
-    request.setRequestHeader('Content-Type', 'value ' + 123);
+    
     request.addEventListener('load', processResponse, false);
     request.addEventListener('error', handleError, false);
 
