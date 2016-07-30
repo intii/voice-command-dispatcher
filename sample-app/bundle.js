@@ -1,6 +1,6 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var VoiceCommandDispatcher = require('../src/voice-command-dispatcher');
-var witService = require('../src/modules/service-layer/wit-xhr-text-service-layer');
+var witService = require('../src/modules/service-layer/apiai-service-layer');
 var voiceChannel = new VoiceCommandDispatcher(witService);
 
 window.document.querySelector('.js-trigger-mic').addEventListener('click', function() {
@@ -14,7 +14,7 @@ window.document.querySelector('.js-trigger-mic').addEventListener('click', funct
 
 });
 
-},{"../src/modules/service-layer/wit-xhr-text-service-layer":3,"../src/voice-command-dispatcher":5}],2:[function(require,module,exports){
+},{"../src/modules/service-layer/apiai-service-layer":3,"../src/voice-command-dispatcher":5}],2:[function(require,module,exports){
 var MessageRegistry = function() {
 
   /**
@@ -77,24 +77,23 @@ var MessageRegistry = function() {
 
 module.exports = MessageRegistry;
 },{}],3:[function(require,module,exports){
-
 var WitServiceLayer = function() {
-  var url = 'https://7p6oly17u1.execute-api.us-east-1.amazonaws.com/devinti';
+  var url = 'https://7p6oly17u1.execute-api.us-east-1.amazonaws.com/devinti/apiai';
 
   function postMessage(message, callback) {
     var request = new XMLHttpRequest();
-
     function processResponse(xhr) {
-      var outcome = JSON.parse(xhr.target.response).outcomes;
+      var outcome = JSON.parse(xhr.target.response).message;
       var intent;
 
-      if (outcome.length > 0) {
-        intent = outcome[0].intent;
+      if (outcome.status.code === 200) {
+        intent = outcome.result.metadata.intentName;
+        console.log('intent:', intent);
         callback(intent, outcome);
       }
     }
+
     request.open("GET", url + '?query=' + message, true);
-    request.setRequestHeader('Content-Type', 'value ' + 123);
     request.addEventListener('load', processResponse, false);
     request.addEventListener('error', handleError, false);
 
