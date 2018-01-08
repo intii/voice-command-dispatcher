@@ -21,6 +21,7 @@
   "devDependencies": {
     "browserify": "^11.0.1",
     "crypto-browserify": "^3.11.0",
+    "grunt": "^1.0.1",
     "grunt-browserify": "^4.0.1",
     "node-uuid": "^1.4.7"
   }
