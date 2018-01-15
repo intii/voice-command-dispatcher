@@ -1,24 +1,32 @@
-var WitServiceLayer = function() {
-  var url = 'https://7p6oly17u1.execute-api.us-east-1.amazonaws.com/devinti/apiai';
+var WitServiceLayer = function(conf) {
+  var url = 'https://api.api.ai/v1/';
 
+  if (!conf.accessToken) {
+    throw(new Error('You must provide an acccess token'));
+  }
   function postMessage(message, callback) {
     var request = new XMLHttpRequest();
+    var payload = {
+      query: message,
+      lang: conf.lang || 'en',
+      sessionId: 'sessionId'
+    };
     function processResponse(xhr) {
-      var outcome = JSON.parse(xhr.target.response).message;
+      var response = JSON.parse(xhr.target.response);
       var intent;
 
-      if (outcome.status.code === 200) {
-        intent = outcome.result.metadata.intentName;
-        console.log('intent:', intent);
-        callback(intent, outcome.result);
+      if (response.status.code === 200) {
+        intent = response.result.metadata.intentName;
+        callback(intent, response.result);
       }
     }
-
-    request.open("GET", url + '?query=' + message, true);
+    request.open("POST", url + 'query?v=20150910');
+    request.setRequestHeader("Authorization", "Bearer " + conf.accessToken);
+    request.setRequestHeader('Content-type', 'application/json');
     request.addEventListener('load', processResponse, false);
     request.addEventListener('error', handleError, false);
 
-    request.send(message);
+    request.send(JSON.stringify(payload));
   }
 
   function handleError(error) {
