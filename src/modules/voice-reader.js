@@ -1,4 +1,4 @@
-var VoiceReader = function() {
+export default function() {
 
   /**
    * The AudioContext to be used in every step of the voice command dispatcher flow
@@ -157,5 +157,3 @@ var VoiceReader = function() {
     initializeAudioCapture: initializeAudioCapture
   }
 }
-
-module.exports = VoiceReader;

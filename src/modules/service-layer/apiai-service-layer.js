@@ -1,4 +1,4 @@
-var WitServiceLayer = function(conf) {
+export default function(conf) {
   var url = 'https://api.api.ai/v1/';
 
   if (!conf.accessToken) {
@@ -37,5 +37,3 @@ var WitServiceLayer = function(conf) {
     postMessage: postMessage
   }
 }
-
-module.exports = WitServiceLayer;

@@ -1,4 +1,4 @@
-var VoiceReader = function() {
+export default function() {
   var serviceLayer;
   var responseHandler;
 
@@ -51,5 +51,3 @@ var VoiceReader = function() {
     initializeAudioCapture: initializeAudioCapture
   }
 }
-
-module.exports = VoiceReader;

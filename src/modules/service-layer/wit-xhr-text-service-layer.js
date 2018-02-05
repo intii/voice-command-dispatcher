@@ -1,5 +1,5 @@
 
-var WitServiceLayer = function() {
+export default function() {
   var url = 'https://7p6oly17u1.execute-api.us-east-1.amazonaws.com/devinti/witGet';
 
   function postMessage(message, callback) {
@@ -30,5 +30,3 @@ var WitServiceLayer = function() {
     postMessage: postMessage
   }
 }
-
-module.exports = WitServiceLayer;

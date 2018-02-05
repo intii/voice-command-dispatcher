@@ -1,7 +1,7 @@
-var MessageRegistry = require('./modules/register');
-var VoiceReader = require('./modules/voice-reader-speech-api');
-var apiaiServiceLayer = require('./modules/service-layer/apiai-service-layer');
-var witServiceLayer = require('./modules/service-layer/wit-xhr-text-service-layer');
+import MessageRegistry from './modules/register';
+import VoiceReader from './modules/voice-reader-speech-api';
+import apiaiServiceLayer from './modules/service-layer/apiai-service-layer';
+import witServiceLayer from './modules/service-layer/wit-xhr-text-service-layer';
 
 var servicesMap = {
   apiai: apiaiServiceLayer,
@@ -47,4 +47,4 @@ var VoiceCommandDispatcher = function(serviceName, config) {
   }
 }
 
-module.exports = VoiceCommandDispatcher;
+export default VoiceCommandDispatcher;

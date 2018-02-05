@@ -1,4 +1,4 @@
-var MessageRegistry = function() {
+export default function() {
 
   /**
    * A pairing 'message' : [component1, ..., componentN], matching a message to an
@@ -57,5 +57,3 @@ var MessageRegistry = function() {
     unsubscribe: unsubscribe
   }
 }
-
-module.exports = MessageRegistry;
